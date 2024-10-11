@@ -1,1 +1,1 @@
-Questo progetto realizza il controllo di un manipolatore mediante microcontrollore STM32F446RE. Progetto realizzato dal gruppo Accettura - Georgantellos - Pellegrini.
+Questo progetto realizza il controllo di un manipolatore mediante microcontrollore STM32F446RE. Progetto realizzato per il corso di "Embedded Control" dal gruppo Accettura - Georgantellos - Pellegrini.
