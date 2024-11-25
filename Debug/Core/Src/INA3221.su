@@ -1,0 +1,11 @@
+../Core/Src/INA3221.c:4:6:INA3221_wireWriteRegister	32	static
+../Core/Src/INA3221.c:13:6:INA3221_wireReadRegister	40	static
+../Core/Src/INA3221.c:23:6:INA3221SetConfig	24	static
+../Core/Src/INA3221.c:36:6:INA3221_init	16	static
+../Core/Src/INA3221.c:41:6:INA3221_begin	16	static
+../Core/Src/INA3221.c:55:9:INA3221_getBusVoltage_raw	24	static
+../Core/Src/INA3221.c:61:9:INA3221_getShuntVoltage_raw	24	static
+../Core/Src/INA3221.c:67:7:INA3221_getShuntVoltage_mV	16	static
+../Core/Src/INA3221.c:71:7:INA3221_getBusVoltage_V	16	static
+../Core/Src/INA3221.c:75:7:INA3221_getCurrent_mA	16	static
+../Core/Src/INA3221.c:79:5:INA3221_getManufID	24	static
