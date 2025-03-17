@@ -21,12 +21,14 @@
 #include "adc.h"
 #include "dma.h"
 #include "i2c.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include <stdbool.h>
 #include "pca9685.h"
 #include "ina219.h"
 /* USER CODE END Includes */
@@ -39,6 +41,9 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define INA219_ADDRESS (0x41)
+
+#define PULSE_MAX 99
+#define PULSE_MIN 0
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -49,30 +54,21 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-  uint8_t ActiveServo;
-  uint16_t adcValues[4];  // Array per i valori convertiti dall'ADC (2 canali)
-  uint8_t angles[4];
-  uint8_t gripper=0;
-
   INA219_t ina219;
 
-  // PID parameters
-  float Kp = 10.0;  // Proporzionale
-  float Ki = 10.0;  // Integrale
-  float Kd = 0.01; // Derivativo
-  // PID variables
-  float previous_error = 0;
-  float integral = 0;
-  float derivative = 0;
-  // Thresholds and limits
-  float pwm_max = 4095;  // Valore massimo di PWM (ipotizziamo un timer a 12 bit)
-  float pwm_min = 0;     // Valore minimo di PWM
+  uint8_t ActiveServo;
+  uint16_t adcValues[4];
+  uint8_t angles[4];
 
-  float pwm_value = 0;
-  float error = 0;
-  float setpoint = 0;
+  bool grippe=0;
+  bool finecorsa=0;
   float current_value = 0;
+  float current_ref = 5;
+  float integral = 0;
+  float previous_error = 0;
+  uint16_t pulse = 0;
 
+  float current_value = 0;
 
 /* USER CODE END PV */
 
@@ -81,52 +77,11 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-    if(GPIO_Pin == Button_Pin) {
-    	if(gripper == 0){
-    		gripper = 1;
+    if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_0) == GPIO_PIN_RESET) {
+   	 gripper = !gripper;
     	}
-    	else{
-    		gripper = 0;
-    	}
-    }
 }
 
-// PID control loop
-float PI_Control(float setpoint, float current_value) {
-    error = setpoint - current_value;
-    integral += error;
-    derivative = error - previous_error;  // Derivata dell'errore
-    previous_error = error;                    // Aggiorna l'errore precedente
-
-    // Calcola il valore di uscita PID
-    float output = (Kp * error) + (Ki * integral) + (Kd * derivative);
-
-    // Limita l'output tra i valori massimi e minimi del PWM
-    if (output > pwm_max) {
-        output = pwm_max;
-    } else if (output < pwm_min) {
-        output = pwm_min;
-    }
-    // Anti Wind-Up
-    /*
-    if (output == pwm_max || output == pwm_min) {
-    	integral -= error; // riduci l'accumulo integrale
-    }
-    */
-    return output;
-}
-
-void Control_Loop(float setpoint) {
-
-    // Leggi la corrente attuale dal sensore
-    current_value = INA219_ReadCurrent(&ina219);
-
-    // Applica il controllo PID per regolare il PWM in base alla corrente
-    pwm_value = PI_Control(setpoint, current_value);
-
-    // Imposta il valore di PWM calcolato per il servo
-    PCA9685_SetPin(4, pwm_value, 0);
-}
 
 /* USER CODE END PFP */
 
@@ -142,6 +97,15 @@ int __io_putchar(int ch)
 void _putchar(char c)
 {
   ITM_SendChar(c);
+}
+
+void SWV_PrintInt(int val)
+{
+    char buffer[32];
+    sprintf(buffer, "%d\n", val);
+    for (int i = 0; buffer[i] != '\0'; i++) {
+        ITM_SendChar(buffer[i]);
+    }
 }
 
 /* USER CODE END 0 */
@@ -179,20 +143,18 @@ int main(void)
   MX_USART2_UART_Init();
   MX_I2C1_Init();
   MX_ADC1_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcValues, 4);  // Avvia l'ADC in modalità DMA
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcValues, 4);
 
   PCA9685_Init(&hi2c1);
   while(!INA219_Init(&ina219, &hi2c1, INA219_ADDRESS, 0.500)){}
 
-  // Debug I2C
   if (HAL_I2C_IsDeviceReady(&hi2c1, PCA9685_ADDRESS, 1, HAL_MAX_DELAY) != HAL_OK) {
-        // Errore: il dispositivo non risponde
         Error_Handler();
     }
 
   if (HAL_I2C_IsDeviceReady(&hi2c1, INA219_ADDRESS<<1, 1, HAL_MAX_DELAY) != HAL_OK) {
-      // Errore: il dispositivo non risponde
       Error_Handler();
   }
 
@@ -217,19 +179,46 @@ int main(void)
 	  PCA9685_SetServoAngle(2, angles[2]);
 	  PCA9685_SetServoAngle(3, angles[3]);
 
+	  current_value = INA219_ReadCurrent(&ina219);
+	  SWV_PrintInt(current_value * 1000);
+	  SWV_PrintInt(current_ref);
+	  HAL_Delay(500);
 
-	  if(gripper == 1){
-		  setpoint = 0.300;
-		  Control_Loop(setpoint);
-	  }
-	  else if (gripper == 0){
-		  setpoint = 0;
-		  PCA9685_SetServoAngle(4, 0);
-	  }
+	     if (gripper == 1) {
+	          HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_RESET);
+	          HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_SET);
 
-	  printf("PWM: %f\n", pwm_value);
-	  printf("ERROR: %f\n", error);
-	  printf("CURRENT: %f\n", current_value);
+	          float error = current_ref - current_value;
+
+	          float derivative = (error - previous_error) / 0.1;
+
+	          if ((pulse > PULSE_MAX && error > 0) || (pulse < PULSE_MIN && error < 0)) {
+	              integral = integral;
+	          } else {
+	              integral += error * 0.1;
+	          }
+
+	          float control_signal = (Kp * error) + (Ki * integral) + (Kd * derivative);
+	          pulse += (int)control_signal;
+
+	          if (pulse > PULSE_MAX) pulse = PULSE_MAX;
+	          if (pulse < PULSE_MIN) pulse = PULSE_MIN;
+
+	          __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, pulse);
+
+	          previous_error = error;
+	      }
+
+	     else if (gripper==0){
+	          HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);
+	          HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
+	          if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_5) == GPIO_PIN_RESET){
+	              HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_RESET);
+	              HAL_GPIO_WritePin(GPIOC, GPIO_PIN_2, GPIO_PIN_RESET);
+	              __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
+	          }
+		  }
+
 
 
     /* USER CODE END WHILE */

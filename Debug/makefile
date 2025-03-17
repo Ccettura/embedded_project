@@ -34,34 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := progetto_embedded_control_v1
+BUILD_ARTIFACT_NAME := progetto
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-progetto_embedded_control_v1.elf \
+progetto.elf \
 
 MAP_FILES += \
-progetto_embedded_control_v1.map \
+progetto.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-progetto_embedded_control_v1.list \
+progetto.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: progetto_embedded_control_v1.elf secondary-outputs
+main-build: progetto.elf secondary-outputs
 
 # Tool invocations
-progetto_embedded_control_v1.elf progetto_embedded_control_v1.map: $(OBJS) $(USER_OBJS) C:\Users\franc\STM32CubeIDE\workspace_1.15.0\bozza_progetto\STM32F446RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "progetto_embedded_control_v1.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\franc\STM32CubeIDE\workspace_1.15.0\bozza_progetto\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="progetto_embedded_control_v1.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
+progetto.elf progetto.map: $(OBJS) $(USER_OBJS) C:\Users\39333\STM32CubeIDE\workspace_1.17.0\progetto\STM32F446RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "progetto.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\39333\STM32CubeIDE\workspace_1.17.0\progetto\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="progetto.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +70,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-progetto_embedded_control_v1.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "progetto_embedded_control_v1.list"
+progetto.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "progetto.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) default.size.stdout progetto_embedded_control_v1.elf progetto_embedded_control_v1.list progetto_embedded_control_v1.map
+	-$(RM) default.size.stdout progetto.elf progetto.list progetto.map
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
