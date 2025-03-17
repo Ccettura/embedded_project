@@ -63,7 +63,7 @@
   bool grippe=0;
   bool finecorsa=0;
   float current_value = 0;
-  float current_ref = 5;
+  float current_ref = 0.4;
   float integral = 0;
   float previous_error = 0;
   uint16_t pulse = 0;
